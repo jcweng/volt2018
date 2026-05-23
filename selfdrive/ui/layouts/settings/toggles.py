@@ -12,6 +12,7 @@ from openpilot.selfdrive.ui.ui_state import ui_state
 if gui_app.sunnypilot_ui():
   from openpilot.system.ui.sunnypilot.widgets.list_view import toggle_item_sp as toggle_item
   from openpilot.system.ui.sunnypilot.widgets.list_view import multiple_button_item_sp as multiple_button_item
+  from openpilot.system.ui.sunnypilot.widgets.list_view import option_item_sp
 
 PERSONALITY_TO_INT = log.LongitudinalPersonality.schema.enumerants
 
@@ -34,6 +35,7 @@ DESCRIPTIONS = {
   "AlwaysOnDM": tr_noop("Enable driver monitoring even when sunnypilot is not engaged."),
   'RecordFront': tr_noop("Upload data from the driver facing camera and help improve the driver monitoring algorithm."),
   "IsMetric": tr_noop("Display speed in km/h instead of mph."),
+  "CameraOffset": tr_noop("Adjust lateral position in lane. Positive values shift right, negative shift left. Affects both visual path and actual steering."),
   "RecordAudio": tr_noop("Record and store microphone audio while driving. The audio will be included in the dashcam video in comma connect."),
 }
 
@@ -106,6 +108,20 @@ class TogglesLayout(Widget):
       icon="speed_limit.png"
     )
 
+    # Camera Offset slider control
+    if gui_app.sunnypilot_ui():
+      self._camera_offset_control = option_item_sp(
+        title=lambda: tr("Lane Position Offset"),
+        param="CameraOffset",
+        description=lambda: tr(DESCRIPTIONS["CameraOffset"]),
+        min_value=-10,
+        max_value=10,
+        value_change_step=1,
+        label_callback=lambda x: f"{x/100:+.2f}m" if x != 0 else "0.00m",
+        use_float_scaling=True,
+        icon="road.png"
+      )
+
     self._toggles = {}
     self._locked_toggles = set()
     for param, (title, desc, icon, needs_restart) in self._toggle_defs.items():
@@ -138,6 +154,10 @@ class TogglesLayout(Widget):
       # insert longitudinal personality after NDOG toggle
       if param == "DisengageOnAccelerator":
         self._toggles["LongitudinalPersonality"] = self._long_personality_setting
+
+      # insert camera offset after IsMetric toggle
+      if param == "IsMetric" and gui_app.sunnypilot_ui():
+        self._toggles["CameraOffset"] = self._camera_offset_control
 
     self._update_experimental_mode_icon()
     self._scroller = Scroller(list(self._toggles.values()), line_separator=True, spacing=0)
