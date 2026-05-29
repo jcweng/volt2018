@@ -54,7 +54,7 @@ T_IDXS = np.array(T_IDXS_LST)
 FCW_IDXS = T_IDXS < 5.0
 T_DIFFS = np.diff(T_IDXS, prepend=[0.])
 COMFORT_BRAKE = 2.5
-STOP_DISTANCE = 6.0
+STOP_DISTANCE = 3.5  # Reduced from 6.0 - Chevy Volt 2018 true time-based following
 CRUISE_MIN_ACCEL = -1.2
 CRUISE_MAX_ACCEL = 1.6
 MIN_X_LEAD_FACTOR = 0.5
@@ -71,12 +71,13 @@ def get_jerk_factor(personality=log.LongitudinalPersonality.standard):
 
 
 def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard):
+  # Chevy Volt 2018 - True time-based following distances
   if personality==log.LongitudinalPersonality.relaxed:
-    return 1.75
+    return 3.0  # 3.0 second following distance
   elif personality==log.LongitudinalPersonality.standard:
-    return 1.45
+    return 2.2  # 2.2 second following distance
   elif personality==log.LongitudinalPersonality.aggressive:
-    return 1.25
+    return 1.5  # 1.5 second following distance
   else:
     raise NotImplementedError("Longitudinal personality not supported")
 
@@ -84,7 +85,10 @@ def get_stopped_equivalence_factor(v_lead):
   return (v_lead**2) / (2 * COMFORT_BRAKE)
 
 def get_safe_obstacle_distance(v_ego, t_follow):
-  return (v_ego**2) / (2 * COMFORT_BRAKE) + t_follow * v_ego + STOP_DISTANCE
+  # Modified for Chevy Volt 2018 - True time-based following with minimal buffer
+  # Formula: distance = t_follow * v_ego + fixed_buffer
+  # This provides constant-time following distances (e.g., 1.5s/2.2s/3.0s) with small safety margin
+  return t_follow * v_ego + STOP_DISTANCE
 
 def gen_long_model():
   model = AcadosModel()
